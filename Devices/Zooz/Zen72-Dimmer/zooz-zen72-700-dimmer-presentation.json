@@ -1,7 +1,7 @@
 {
     "mnmn": "SmartThingsCommunity",
-    "vid": "2e8169fa-0834-3c7d-a8c4-2744421503b1",
-    "version": "0.0.1",
+    "vid": "144f4b80-b890-3294-80af-32a942874492",
+    "version": "0.0.2",
     "type": "dth",
     "iconUrl": null,
     "dashboard": {
@@ -44,6 +44,27 @@
         {
             "component": "main",
             "capability": "button",
+            "version": 1,
+            "values": [],
+            "patch": []
+        },
+        {
+            "component": "main",
+            "capability": "platemusic11009.zoozLedColor",
+            "version": 1,
+            "values": [],
+            "patch": []
+        },
+        {
+            "component": "main",
+            "capability": "platemusic11009.zoozLedBrightness",
+            "version": 1,
+            "values": [],
+            "patch": []
+        },
+        {
+            "component": "main",
+            "capability": "platemusic11009.zoozLedMode",
             "version": 1,
             "values": [],
             "patch": []
@@ -108,6 +129,30 @@
                 "values": [],
                 "patch": [],
                 "exclusion": []
+            },
+            {
+                "component": "main",
+                "capability": "platemusic11009.zoozLedColor",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
+            },
+            {
+                "component": "main",
+                "capability": "platemusic11009.zoozLedBrightness",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
+            },
+            {
+                "component": "main",
+                "capability": "platemusic11009.zoozLedMode",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
             }
         ],
         "actions": [
@@ -129,6 +174,30 @@
             },
             {
                 "component": "main",
+                "capability": "platemusic11009.zoozLedColor",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
+            },
+            {
+                "component": "main",
+                "capability": "platemusic11009.zoozLedBrightness",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
+            },
+            {
+                "component": "main",
+                "capability": "platemusic11009.zoozLedMode",
+                "version": 1,
+                "values": [],
+                "patch": [],
+                "exclusion": []
+            },
+            {
+                "component": "main",
                 "capability": "refresh",
                 "version": 1,
                 "values": [],
@@ -137,6 +206,6 @@
             }
         ]
     },
-    "presentationId": "2e8169fa-0834-3c7d-a8c4-2744421503b1",
+    "presentationId": "144f4b80-b890-3294-80af-32a942874492",
     "manufacturerName": "SmartThingsCommunity"
 }
