@@ -1,7 +1,12 @@
 /*
- *  Zooz ZEN71 700 Switch VER. 1.0.1
+ *  Zooz ZEN71 700 Switch VER. 1.0.2
  *
  *  Changelog:
+ *
+ *    1.0.2 (02/15/2022)
+ *      - Author: Bryan Burroughs (@aaronburro)
+ *      - Add LED Color, LED Brightness, and On/Off to details view and allow setting them from routines and checking them in conditions
+ *      - Adapted from Kevin LaFramboise's Zen32 device handler
  *
  *    1.0.1 (02/07/2021)
  *      - Added patch workaround to presentation for supportedButtonValues support in Automations.
@@ -54,6 +59,9 @@ import groovy.transform.Field
 @Field static int assocMaxNodes = 5
 @Field static BigDecimal assocMinFirmware = 1.03
 
+@Field static Map ledColorOptions = [0:"white", 1:"blue", 2:"green", 3:"red"]
+@Field static Map ledBrightnessOptions = [0:"bright", 1:"medium", 2:"low"]
+@Field static Map ledModeOptions = [0:"onWhenOff", 1:"onWhenOn", 2:"alwaysOff", 3:"alwaysOn"]
 @Field static Map autoOnOffOptions = [0:"Timer Disabled [DEFAULT]", 1:"1 Minute", 2:"2 Minutes", 3:"3 Minutes", 4:"4 Minutes", 5:"5 Minutes", 6:"6 Minutes", 7:"7 Minutes", 8:"8 Minutes", 9:"9 Minutes", 10:"10 Minutes", 15:"15 Minutes", 20:"20 Minutes", 25:"25 Minutes", 30:"30 Minutes", 45:"45 Minutes", 60:"1 Hour", 120:"2 Hours", 180:"3 Hours", 240:"4 Hours", 300:"5 Hours", 360:"6 Hours", 420:"7 Hours", 480:"8 Hours", 540:"9 Hours", 600:"10 Hours", 720:"12 Hours", 1080:"18 Hours", 1440:"1 Day", 2880:"2 Days", 4320:"3 Days", 5760:"4 Days", 7200:"5 Days", 8640:"6 Days", 10080:"1 Week", 20160:"2 Weeks", 30240:"3 Weeks", 40320:"4 Weeks", 50400:"5 Weeks", 60480:"6 Weeks"]
 
 
@@ -64,7 +72,7 @@ metadata {
 		author: "Kevin LaFramboise (@krlaframboise)",
 		ocfDeviceType: "oic.d.switch",
 		mnmn: "SmartThingsCommunity",
-		vid: "2dd64fd2-480a-378b-8df2-bc59f865fa13"
+		vid: "369425bb-fc66-306e-9612-f2ad7d7c7367"
 	) {
 		capability "Actuator"
 		capability "Sensor"
@@ -75,6 +83,9 @@ metadata {
 		capability "Health Check"
 		capability "Button"
 		capability "platemusic11009.firmware"
+        capability "platemusic11009.zoozLedColor"
+		capability "platemusic11009.zoozLedBrightness"
+		capability "platemusic11009.zoozLedMode"
 		capability "platemusic11009.associationGroupTwo"
 		capability "platemusic11009.syncStatus"
 
@@ -169,6 +180,18 @@ void initialize() {
 		sendButtonEvent("up")
 	}
 
+	if (!device.currentValue("ledColor")) {
+		sendEvent(name: "ledColor", value: "blue")
+	}
+
+	if (!device.currentValue("ledBrightness")) {
+		sendEvent(name: "ledBrightness", value: "medium")
+	}
+
+	if (!device.currentValue("ledMode")) {
+		sendEvent(name: "ledMode", value: "onWhenOff")
+	}
+
 	assocGroups.each { group, name ->
 		if (device.currentValue(name) == null) {
 			sendEvent(name: name, value: "")
@@ -198,14 +221,19 @@ void executeConfigureCmds() {
 		cmds << versionGetCmd()
 	}
 
-	configParams.each { param ->
-		Integer storedVal = getParamStoredValue(param.num)
-		if (state.resyncAll || storedVal != param.value) {
-			if (state.resyncAll != null) {
+	if (state.resyncAll) {
+		allConfigParams.each { param ->
+			cmds << configGetCmd(param)
+		}
+	}
+	else {
+		configParams.each { param ->
+			Integer storedVal = getParamStoredValue(param.num)
+			if (storedVal != param.value) {
 				logDebug "Changing ${param.name}(#${param.num}) from ${storedVal} to ${param.value}"
 				cmds << configSetCmd(param, param.value)
+				cmds << configGetCmd(param)
 			}
-			cmds << configGetCmd(param)
 		}
 	}
 
@@ -290,12 +318,63 @@ def ledIndicatorOn() {
 	], 200)
 }
 
-def ledIndicatorOff() { 	
+def ledIndicatorOff() {
 	logDebug "ledIndicatorOff()..."
-	return delayBetween([ 
-		indicatorSetCmd(0x00), 
-		indicatorGetCmd() 
+	return delayBetween([
+		indicatorSetCmd(0x00),
+		indicatorGetCmd()
 	], 200)
+}
+
+
+def setLedColor(color) {
+	logDebug "setLedColor($color)..."
+	color = color?.toLowerCase()?.trim()
+
+	Integer value = ledColorOptions.find { it.value.toLowerCase() == color }?.key
+	if (value != null) {
+		sendCommands([
+			configSetCmd(ledColorParam, value),
+			configGetCmd(ledColorParam)
+		])
+	}
+	else {
+		log.warn "${color} is not a valid LED Color"
+	}
+}
+
+
+def setLedBrightness(brightness) {
+	logDebug "setLedBrightness($brightness)..."
+	brightness = brightness?.toLowerCase()?.trim()
+
+	Integer value = ledBrightnessOptions.find { it.value == brightness }?.key
+	if (value != null) {
+		sendCommands([
+			configSetCmd(ledBrightnessParam, value),
+			configGetCmd(ledBrightnessParam)
+		])
+	}
+	else {
+		log.warn "${brightness} is not a valid LED Brightness"
+	}
+}
+
+
+def setLedMode(mode) {
+	logDebug "setLedMode($mode)..."
+	mode = mode?.toLowerCase()?.trim()
+
+	Integer value = ledModeOptions.find { it.value.toLowerCase() == mode.toLowerCase() }?.key
+	if (value != null) {
+		sendCommands([
+			configSetCmd(ledIndicatorParam, value),
+			configGetCmd(ledIndicatorParam)
+		])
+	}
+	else {
+		log.warn "${mode} is not a valid LED Mode"
+	}
 }
 
 
@@ -324,7 +403,10 @@ def refresh() {
 
 	sendCommands([
 		switchBinaryGetCmd(),
-		versionGetCmd()
+		versionGetCmd(),
+		configGetCmd(ledColorParam),
+		configGetCmd(ledBrightnessParam),
+		configGetCmd(ledIndicatorParam)
 	])
 
 	if (isDuplicateCommand(state.lastRefresh, 2000)) {
@@ -456,14 +538,42 @@ void zwaveEvent(physicalgraph.zwave.commands.configurationv1.ConfigurationReport
 
 	runIn(4, refreshSyncStatus)
 
-	Map param = configParams.find { it.num == cmd.parameterNumber }
+	Map param = allConfigParams.find { it.num == cmd.parameterNumber }
 	if (param) {
 		Integer val = cmd.scaledConfigurationValue
 		logDebug "${param.name}(#${param.num}) = ${val}"
 		setParamStoredValue(param.num, val)
+		handleLedEvent(param.num, val)
 	}
 	else {
 		logDebug "Parameter #${cmd.parameterNumber} = ${cmd.scaledConfigurationValue}"
+	}
+}
+
+
+void handleLedEvent(Integer paramNum, int configVal) {
+	String name = ""
+	String value = ""
+
+	switch (paramNum) {
+		case ledColorParam.num:
+			name = "ledColor"
+			value = ledColorOptions.get(configVal)
+			break
+
+		case ledBrightnessParam.num:
+			name = "ledBrightness"
+			value = ledBrightnessOptions.get(configVal)
+			break
+
+		case ledIndicatorParam.num:
+			name = "ledMode"
+			value = ledModeOptions.get(configVal)
+			break
+	}
+
+	if (name) {
+		sendEventIfNew(name, value)
 	}
 }
 
@@ -580,13 +690,17 @@ void setParamStoredValue(Integer paramNum, Integer value) {
 	state["configVal${paramNum}"] = value
 }
 
+List<Map> getAllConfigParams() {
+	List<Map> params = configParams
+	params << ledColorParam
+	params << ledBrightnessParam
+	params << ledIndicatorParam
+	return params
+}
 
 List<Map> getConfigParams() {
 	return [
 		paddleOrientationParam,
-		ledIndicatorParam,
-		ledColorParam,
-		ledBrightnessParam,
 		autoOffParam,
 		autoOnParam,
 		powerFailureRecoveryParam,
@@ -602,7 +716,7 @@ Map getPaddleOrientationParam() {
 }
 
 Map getLedIndicatorParam() {
-	return getParam(2, "LED Indicator", 1, 0, [0:"LED On When Switch Off [DEFAULT]", 1:"LED On When Switch On", 2:"LED Always Off", 3:"LED Always On"])
+	return getStateParam(2, "LED Indicator", 1, 0, [0:"LED On When Switch Off [DEFAULT]", 1:"LED On When Switch On", 2:"LED Always Off", 3:"LED Always On"])
 }
 
 Map getAutoOffParam() {
@@ -634,15 +748,21 @@ Map getDisabledRelayBehaviorParam() {
 }
 
 Map getLedColorParam() {
-	return getParam(14, "LED Indicator Color", 1, 1, [0:"White", 1:"Blue [DEFAULT]", 2:"Green", 3:"Red"])
+	return getStateParam(14, "LED Indicator Color", 1, 1, [0:"White", 1:"Blue [DEFAULT]", 2:"Green", 3:"Red"])
 }
 
 Map getLedBrightnessParam() {
-	return getParam(15, "LED Indicator Brightness", 1, 1, [0:"Bright (100%)", 1:"Medium (60%) [DEFAULT]", 2:"Low (30%)"])
+	return getStateParam(15, "LED Indicator Brightness", 1, 1, [0:"Bright (100%)", 1:"Medium (60%) [DEFAULT]", 2:"Low (30%)"])
 }
 
 Map getParam(Integer num, String name, Integer size, Integer defaultVal, Map options) {
 	Integer val = safeToInt((settings ? settings["configParam${num}"] : null), defaultVal)
+
+	return [num: num, name: name, size: size, value: val, options: options]
+}
+
+Map getStateParam(Integer num, String name, Integer size, Integer defaultVal, Map options) {
+	Integer val = safeToInt(state["configVal${num}"] , defaultVal)
 
 	return [num: num, name: name, size: size, value: val, options: options]
 }
